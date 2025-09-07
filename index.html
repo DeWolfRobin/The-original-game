@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Neon Runner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Audio Control Button -->
+        <button class="audio-toggle" id="audioToggle">
+            <span class="audio-icon">🔊</span>
+        </button>
+
+        <!-- Start Screen -->
+        <div id="startScreen" class="screen active">
+            <div class="title-container">
+                <h1 class="game-title">NEON RUNNER</h1>
+                <div class="glow-line"></div>
+            </div>
+            <div class="high-score-display">
+                <span>HIGH SCORE: <span id="highScoreValue">0</span></span>
+            </div>
+            <button class="btn btn--primary neon-btn" id="startBtn">
+                TAP TO START
+            </button>
+            <div class="mobile-instructions">
+                <p>Drag to move • Tap to select</p>
+            </div>
+        </div>
+
+        <!-- Modifier Selection Screen -->
+        <div id="modifierScreen" class="screen">
+            <div class="modifier-container">
+                <h2 class="modifier-title">CHOOSE YOUR MODIFIER</h2>
+                <div class="modifiers-grid">
+                    <div class="modifier-card" data-modifier="0">
+                        <div class="modifier-number">1</div>
+                        <h3 class="modifier-name" id="mod0Name"></h3>
+                        <p class="modifier-desc" id="mod0Desc"></p>
+                    </div>
+                    <div class="modifier-card" data-modifier="1">
+                        <div class="modifier-number">2</div>
+                        <h3 class="modifier-name" id="mod1Name"></h3>
+                        <p class="modifier-desc" id="mod1Desc"></p>
+                    </div>
+                    <div class="modifier-card" data-modifier="2">
+                        <div class="modifier-number">3</div>
+                        <h3 class="modifier-name" id="mod2Name"></h3>
+                        <p class="modifier-desc" id="mod2Desc"></p>
+                    </div>
+                </div>
+                <div class="modifier-instruction">Tap to select a modifier</div>
+            </div>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="gameScreen" class="screen">
+            <div class="game-ui">
+                <div class="ui-left">
+                    <div class="score-display">
+                        <span>SCORE: <span id="currentScore">0</span></span>
+                    </div>
+                    <div class="lives-display" id="livesDisplay">
+                        <span>LIVES: <span id="livesCount">1</span></span>
+                    </div>
+                </div>
+                <div class="ui-right">
+                    <div class="modifier-indicator" id="modifierIndicator">
+                        <span id="activeModifier"></span>
+                    </div>
+                </div>
+            </div>
+            <canvas id="gameCanvas"></canvas>
+            
+            <!-- Virtual Joystick -->
+            <div class="virtual-joystick hidden" id="virtualJoystick">
+                <div class="joystick-outer">
+                    <div class="joystick-inner" id="joystickInner"></div>
+                </div>
+            </div>
+            
+            <!-- Touch Controls Toggle -->
+            <button class="control-toggle" id="controlToggle">
+                <span class="control-icon">🎮</span>
+            </button>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameOverScreen" class="screen">
+            <div class="game-over-container">
+                <h2 class="game-over-title">GAME OVER</h2>
+                <div class="score-summary">
+                    <div class="final-score">
+                        <span>FINAL SCORE</span>
+                        <span id="finalScore">0</span>
+                    </div>
+                    <div class="best-score">
+                        <span>BEST SCORE</span>
+                        <span id="bestScore">0</span>
+                    </div>
+                </div>
+                <div class="modifier-used">
+                    <span>MODIFIER USED: <span id="usedModifier"></span></span>
+                </div>
+                <button class="btn btn--primary neon-btn" id="restartBtn">
+                    TAP TO RESTART
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
