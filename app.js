@@ -1,3 +1,4 @@
+'use strict';
 // Game data
 const MODIFIERS = [
     {
@@ -47,25 +48,41 @@ const POWER_UP_TYPES = [
         name: "score",
         color: "#FFD700",
         points: 100,
-        description: "Score boost"
+        description: "Score boost",
     },
     {
         name: "speed",
-        color: "#00FF00", 
+        color: "#00FF00",
         duration: 3000,
-        description: "Speed boost"
+        description: "Speed boost",
     },
     {
         name: "shield",
         color: "#00FFFF",
         duration: 5000,
-        description: "Temporary invincibility"
+        description: "Temporary invincibility",
     },
     {
         name: "magnet",
         color: "#FF69B4",
         duration: 4000,
-        description: "Attract power-ups"
+        description: "Attract power-ups",
+    },
+    {
+        name: "extraLife",
+        color: "#FFA500",
+        description: "Gain an extra life",
+    },
+    {
+        name: "slow",
+        color: "#8A2BE2",
+        duration: 4000,
+        description: "Slow down obstacles",
+    },
+    {
+        name: "nuke",
+        color: "#FF4500",
+        description: "Destroy all obstacles",
     }
 ];
 
@@ -553,7 +570,7 @@ class TouchInputManager {
 }
 
 // Game engine
-class NeonRunner {
+class TheOriginalGame {
     constructor() {
         this.canvas = document.getElementById('gameCanvas');
         this.ctx = this.canvas.getContext('2d');
@@ -568,10 +585,12 @@ class NeonRunner {
         // Game state
         this.gameState = 'start';
         this.score = 0;
-        this.highScore = parseInt(localStorage.getItem('neonRunnerHighScore')) || 0;
+        this.highScore = parseInt(localStorage.getItem('theOriginalGameHighScore')) || 0;
         this.lives = 1;
         this.gameSpeed = 2;
+        this.currentSpeed = this.gameSpeed;
         this.timeScale = 1;
+        this.slowTime = 0;
         
         // Mobile settings
         this.useVirtualJoystick = false;
@@ -670,8 +689,7 @@ class NeonRunner {
             await this.audioSystem.resumeAudio();
             this.toggleAudio();
         };
-        audioToggle.addEventListener('click', handleAudioToggle);
-        audioToggle.addEventListener('touchend', handleAudioToggle);
+        audioToggle.addEventListener('pointerup', handleAudioToggle);
         
         // Control toggle with better feedback
         const controlToggle = document.getElementById('controlToggle');
@@ -680,8 +698,7 @@ class NeonRunner {
             e.stopPropagation();
             this.toggleControls();
         };
-        controlToggle.addEventListener('click', handleControlToggle);
-        controlToggle.addEventListener('touchend', handleControlToggle);
+        controlToggle.addEventListener('pointerup', handleControlToggle);
         
         // Main buttons with proper touch handling
         const startBtn = document.getElementById('startBtn');
@@ -691,8 +708,7 @@ class NeonRunner {
             await this.audioSystem.resumeAudio();
             this.startGame();
         };
-        startBtn.addEventListener('click', handleStart);
-        startBtn.addEventListener('touchend', handleStart);
+        startBtn.addEventListener('pointerup', handleStart);
         
         const restartBtn = document.getElementById('restartBtn');
         const handleRestart = (e) => {
@@ -700,8 +716,7 @@ class NeonRunner {
             e.stopPropagation();
             this.restartGame();
         };
-        restartBtn.addEventListener('click', handleRestart);
-        restartBtn.addEventListener('touchend', handleRestart);
+        restartBtn.addEventListener('pointerup', handleRestart);
         
         // Modifier card clicks with better touch feedback
         document.querySelectorAll('.modifier-card').forEach((card, index) => {
@@ -713,8 +728,7 @@ class NeonRunner {
                 this.selectModifier(index);
             };
             
-            card.addEventListener('click', handleSelect);
-            card.addEventListener('touchend', handleSelect);
+            card.addEventListener('pointerup', handleSelect);
         });
     }
     
@@ -868,67 +882,74 @@ class NeonRunner {
     
     update(deltaTime) {
         const scaledDelta = deltaTime * this.timeScale;
-        
+
+        if (this.slowTime > 0) {
+            this.slowTime = Math.max(0, this.slowTime - scaledDelta);
+        }
+
+        const speedFactor = this.slowTime > 0 ? 0.5 : 1;
+        this.currentSpeed = this.gameSpeed * speedFactor;
+
         // Update player
         this.player.update(scaledDelta, this.keys, this.canvas, this.touchInput, this.useVirtualJoystick);
-        
+
         // Time dilation
         if (this.activeModifier.effect.timeDilation) {
             this.updateTimeDilation();
         }
-        
+
         // Spawn obstacles - reduced rate on lower performance
         const obstacleRate = this.performanceLevel === 'low' ? 0.015 : 0.02;
         if (Math.random() < obstacleRate * (scaledDelta / 16)) {
             this.spawnObstacle();
         }
-        
+
         // Spawn power-ups
         if (Math.random() < 0.005 * (scaledDelta / 16)) {
             this.spawnPowerUp();
         }
-        
+
         // Update game objects
-        this.updateGameObjects(scaledDelta);
-        
+        this.updateGameObjects(scaledDelta, this.currentSpeed);
+
         // Particle limit for performance
         const maxParticles = this.performanceLevel === 'low' ? 50 : 200;
         if (this.particles.length > maxParticles) {
             this.particles = this.particles.slice(-maxParticles);
         }
-        
+
         // Player trail particles - reduced on low performance
         if (Math.random() < (this.performanceLevel === 'low' ? 0.1 : 0.3)) {
             this.addParticle(this.player.x - this.player.size/2, this.player.y, '#00BFFF', 500);
         }
-        
+
         // Collision detection
         this.checkCollisions();
-        
+
         // Increase difficulty
         this.gameSpeed += 0.0005 * scaledDelta;
-        
+
         // Update score
         this.score += Math.floor(0.1 * scaledDelta * (this.activeModifier.effect.pointMultiplier || 1));
         this.updateUI();
     }
     
-    updateGameObjects(scaledDelta) {
+    updateGameObjects(scaledDelta, speed) {
         // Update obstacles
-        this.obstacles.forEach(obstacle => obstacle.update(scaledDelta, this.gameSpeed));
+        this.obstacles.forEach(obstacle => obstacle.update(scaledDelta, speed));
         this.obstacles = this.obstacles.filter(obstacle => obstacle.x > -100);
-        
+
         // Update power-ups
         this.powerUps.forEach(powerUp => {
-            powerUp.update(scaledDelta, this.gameSpeed);
-            
+            powerUp.update(scaledDelta, speed);
+
             // Magnet effect
             if (this.player.hasMagnet || this.activeModifier.effect.magnetRange) {
                 const dx = this.player.x - powerUp.x;
                 const dy = this.player.y - powerUp.y;
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 const magnetRange = (this.activeModifier.effect.magnetRange || 1) * 150;
-                
+
                 if (distance < magnetRange) {
                     powerUp.x += (dx / distance) * 2;
                     powerUp.y += (dy / distance) * 2;
@@ -936,7 +957,7 @@ class NeonRunner {
             }
         });
         this.powerUps = this.powerUps.filter(powerUp => powerUp.x > -100);
-        
+
         // Update particles
         this.particles.forEach(particle => particle.update(scaledDelta));
         this.particles = this.particles.filter(particle => particle.life > 0);
@@ -1022,6 +1043,16 @@ class NeonRunner {
             case 'magnet':
                 this.player.activateMagnet(powerUp.type.duration);
                 break;
+            case 'extraLife':
+                this.lives++;
+                break;
+            case 'slow':
+                this.slowTime = powerUp.type.duration;
+                break;
+            case 'nuke':
+                this.obstacles.forEach(ob => this.addExplosion(ob.x, ob.y, '#FF4500'));
+                this.obstacles = [];
+                break;
         }
     }
     
@@ -1042,7 +1073,7 @@ class NeonRunner {
         
         if (this.score > this.highScore) {
             this.highScore = this.score;
-            localStorage.setItem('neonRunnerHighScore', this.highScore.toString());
+            localStorage.setItem('theOriginalGameHighScore', this.highScore.toString());
         }
         
         document.getElementById('finalScore').textContent = this.score;
@@ -1074,7 +1105,7 @@ class NeonRunner {
         this.ctx.lineWidth = 1;
         
         const gridSize = 50;
-        const offset = (Date.now() * this.gameSpeed * 0.05) % gridSize;
+        const offset = (Date.now() * this.currentSpeed * 0.05) % gridSize;
         
         for (let x = -offset; x < window.innerWidth + gridSize; x += gridSize) {
             this.ctx.beginPath();
@@ -1320,6 +1351,6 @@ class Particle {
 }
 
 // Initialize game when page loads
-window.addEventListener('load', () => {
-    new NeonRunner();
+document.addEventListener('DOMContentLoaded', () => {
+    new TheOriginalGame();
 });
